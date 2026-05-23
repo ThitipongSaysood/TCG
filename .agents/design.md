@@ -1,8 +1,23 @@
-# Design System — CARD ZONE (The Ultimate TCG Marketplace)
+# Agent Design Notes — CARD ZONE
 
-เอกสารนี้กำหนดแนวทาง UI/UX ของเว็บไซต์ขายซองการ์ด + เปิด Live + ประมูลการ์ด
-อ้างอิงดีไซน์จากภาพตัวอย่าง NFT Marketplace (โทนมืด ม่วง-น้ำเงิน) ผสมกับ
-เอกลักษณ์ TCG (สีทอง/โฮโลแกรม) จาก PDF "The Ultimate TCG Ecosystem".
+> สำเนาของ root [`design.md`](../design.md) ที่ฝัง context อยู่ในโฟลเดอร์ AI
+> โดยตรง เพื่อให้ session ใหม่อ่านได้ทันทีจาก `.agents/` ก่อนหน้าที่จะ
+> navigate ไป root ของโปรเจค ถ้า root design.md เปลี่ยน ให้ sync มาด้วย
+
+## 0. How AI should use this doc
+
+- **ก่อนแตะ UI** — เปิดดู §2 (Color Tokens) และ §6 (Components) ก่อน อย่ามโน
+  hex หรือ class ใหม่ ใช้ token ที่มีอยู่
+- **Edit Blade, not docs/** — แก้ที่ `resources/views/` แล้วรัน
+  `php artisan static:build` ให้ docs/ ใหม่ออกเอง
+- **Asset paths in views** — ใช้ `{{ asset('assets/...') }}` เสมอ build script
+  ตัด host ทิ้งเพื่อให้ทำงานใต้ `/TCG/` บน Pages
+- **Route links** — ใช้ `{{ route('name', params) }}` — build script เขียนเป็น
+  `.html` ให้ตอน export
+- **CSS อยู่ไฟล์เดียว** — `public/assets/css/style.css` ห้าม add Tailwind/SCSS
+  เว้นแต่ user สั่ง
+- **Mobile-first** — ทดสอบที่ 375px (iPhone) ก่อน desktop ถ้ามี layout bug
+  เช็คก่อนว่าเกี่ยวกับ `.section` ทับ `.container` padding ไหม (ดู §11 Lessons)
 
 ---
 
@@ -195,9 +210,31 @@ TCG/
 ## 10. Static Mockup Deploy
 
 ใช้ `php artisan static:build` เรนเดอร์ Blade ทั้ง 15 หน้าเป็น `.html` ใน `docs/`
-แล้ว GitHub Actions ([.github/workflows/pages.yml](.github/workflows/pages.yml))
+แล้ว GitHub Actions ([.github/workflows/pages.yml](../.github/workflows/pages.yml))
 deploy ขึ้น Pages ทุก push ไป `main`
 
 - Build command **ยัด demo user (PANYA, Gold)** ไว้ใน Auth ก่อน render — หน้า static เลยโชว์ navbar แบบล็อกอินอยู่
 - URL ปัจจุบัน: **https://thitipongsaysood.github.io/TCG/**
 - Internal links + asset paths ถูก rewrite ให้เป็น relative path (ทำงานใต้ `/TCG/` ได้)
+
+---
+
+## 11. Lessons — บั๊กที่เคยเจอ (อย่าให้หลุดอีก)
+
+- **Mobile margin หาย** — ห้ามใส่คลาส `container` + `section` พร้อมกันบน `<main>`
+  เพราะ `.section{padding:40px 0}` (shorthand) ทับ `.container{padding:0 16px}`
+  ทำให้ขอบซ้าย-ขวาเป็น 0 → แก้แล้วใน style.css: `.section` ใช้
+  `padding-top` / `padding-bottom` แยก
+- **Status Tracker scrollbar ขาว** — `.htrack` เดิมมี `overflow-x:auto` +
+  `min-width:84px` ที่ล้นกรอบใน aside แคบ → ทำให้เห็น scrollbar เป็นแถบขาวยาว
+  ตอนนี้ใช้ `flex:1` + `min-width:0` + ไม่มี overflow แล้ว ห้ามใส่กลับ
+- **Pages workflow ซ้อน** — ถ้า user enable Pages ผ่าน UI แล้วเลือก template
+  GitHub จะเพิ่ม `.github/workflows/static.yml` ที่ upload `path: '.'` ของ
+  repo เปล่าๆ ซ้อนกับ `pages.yml` (concurrency group `pages` ตัวเดียวกัน)
+  → 404 เสมอ ลบ static.yml ทิ้งให้เหลือแค่ pages.yml
+- **Gallery JS ใน product-detail** — `main.textContent = ...` จะลบ `<img>`
+  ภายใน galleryMain ทิ้ง ตอนนี้ logic เช็คก่อนว่ามี `<img>` ลูกไหม ถ้ามี
+  ใช้ `mImg.src = t.dataset.img` แทน
+- **Mass assignment trap ใน demo user** — `User::class` มี `#[Fillable]` แบบ
+  strict ฟิลด์อย่าง `membership_tier` ไม่อยู่ใน list ต้องตั้งด้วย property
+  assignment โดยตรง (`$demo->membership_tier = 'gold';`) ไม่ใช่ผ่าน constructor

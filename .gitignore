@@ -32,3 +32,6 @@ Thumbs.db
 /.claude/
 /docs/
 /text.text
+
+# AI agent private notes
+/.agents/private/
