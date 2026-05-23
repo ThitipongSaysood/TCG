@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ViewErrorBag;
 
@@ -59,6 +61,17 @@ class BuildStatic extends Command
 
         // ShareErrorsFromSession is web-only — provide an empty bag for CLI rendering
         View::share('errors', new ViewErrorBag);
+
+        // Render the mockup as a logged-in demo user so navbar/drawer show the
+        // avatar chip + tier instead of the "เข้าสู่ระบบ" button. The user is
+        // not persisted — just held in the guard for the duration of the build.
+        $demo = (new User)->forceFill([
+            'id'              => 1,
+            'display_name'    => 'PANYA',
+            'email'           => 'demo@cardzone.local',
+            'membership_tier' => 'gold',
+        ]);
+        Auth::setUser($demo);
 
         // Build URL → file replacement table (longer first to avoid partial matches)
         $replacements = [];
