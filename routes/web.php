@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\PageController;
+use App\Auth\AuthController;
+use App\Pages\PageController;
 use Illuminate\Support\Facades\Route;
 
 // Public pages
