@@ -37,7 +37,7 @@
 |-------|---------|
 | Framework | **Laravel 11** (PHP 8.4) |
 | Templating | Blade |
-| Database | MySQL/MariaDB · **multi-DB:** `siamcard` (auth) + `caed_zone` (business) |
+| Database | MySQL/MariaDB · DB `siamcard` (remote: `shop.siamcardmarket.com`) |
 | Frontend | Vanilla CSS/JS · Glassmorphism · Mobile-first |
 | Build | Vite |
 | Auth | REST API · Sanctum token + Socialite (Email / LINE / Google) |

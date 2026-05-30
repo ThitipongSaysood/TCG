@@ -3,63 +3,46 @@
 ออกแบบฐานข้อมูลรองรับ 3 ระบบ: Front Website / Seller Dashboard / Admin System
 DB engine: **MySQL/MariaDB** — ทุกตารางมี `created_at`, `updated_at`
 
-> **Multi-database setup (since 2026-05-30):** แยกเป็น 2 DBs บน MySQL instance เดียวกัน
-> - **`siamcard`** = auth + identity (default connection)
-> - **`caed_zone`** = business data (catalog/orders/auctions) — [SQL source of truth](database/caed_zone.sql)
+> **Single DB (since 2026-05-30):** ใช้ **`siamcard`** เป็น DB เดียว (host: `shop.siamcardmarket.com`)
+> ทุก tables — auth + business — อยู่ใน DB เดียวกัน
 
 ---
 
 ## 0. Implementation Status
 
-### 🟢 DB `siamcard` (auth/identity — default Laravel connection)
+### 🟢 DB `siamcard`
 
-| ตาราง | Records | หมวด |
-|------|---------|------|
-| `member` | 2 (migrated) | ผู้ใช้ (แทน `users` ของ Laravel default) |
-| `wallets` | 2 (migrated) | กระเป๋าเงิน · FK → `siamcard.member` |
-| `wallet_transactions` | 0 | รายการเดินบัญชี |
-| `addresses` | 0 | ที่อยู่จัดส่ง · FK → `siamcard.member` |
-| `personal_access_tokens` | — | Sanctum API tokens |
-| `password_reset_tokens` | — | reset password |
+**Implemented (auth/identity):**
 
-**Migrations:** [`database/migrations/siamcard/`](database/migrations/siamcard/)
+| ตาราง | หมวด |
+|------|------|
+| `member` | ผู้ใช้ (แทน `users` ของ Laravel default) |
+| `wallets` | กระเป๋าเงิน · FK → `member` |
+| `wallet_transactions` | รายการเดินบัญชี |
+| `addresses` | ที่อยู่จัดส่ง · FK → `member` |
+| `personal_access_tokens` | Sanctum API tokens |
+| `password_reset_tokens` | reset password |
 
-### 🔵 DB `caed_zone` (business — secondary connection)
+**Migrations:** [`database/migrations/siamcard/`](database/migrations/siamcard/) (auto-loaded via [AppServiceProvider](app/Providers/AppServiceProvider.php))
 
-| ตาราง | Records | หมวด |
-|------|---------|------|
-| `games` | 2 | แคตตาล็อก |
-| `sets` | 2 | แคตตาล็อก |
-| `shops` | 1 | แคตตาล็อก |
-| `products` | 2 | แคตตาล็อก |
-| `product_serials` | 2 | แคตตาล็อก |
-| `orders` | 1 | คำสั่งซื้อ · FK → `siamcard.member.id` (cross-DB) |
-| `order_items` | 1 | คำสั่งซื้อ |
-| `auctions` | 1 | ประมูล |
-| `bids` | 1 | ประมูล · FK → `siamcard.member.id` (cross-DB) |
+### 📝 Planned
 
-**Schema source:** [`database/caed_zone.sql`](database/caed_zone.sql) (phpMyAdmin dump)
-**Migrations (reference only):** [`database/migrations/caed_zone/`](database/migrations/caed_zone/) — ไม่ auto-load
-
-### 📝 Planned (ยังไม่ implement)
-
-| หมวด | ตาราง | DB ที่จะอยู่ |
-|------|------|-------------|
-| ขนส่ง | `shipments` | `caed_zone` |
-| Live เปิดซอง | `live_sessions`, `live_queues` | `caed_zone` |
-| คลังการ์ด | `collection_items`, `wishlists` | `caed_zone` |
-| PSA | `psa_submissions`, `psa_items` | `caed_zone` |
-| Buy-Back | `buyback_listings`, `buyback_requests` | `caed_zone` |
-| ระบบ | `membership_tiers`, `notifications` | `siamcard` |
-| Audit | `audit_logs` | `siamcard` |
+| หมวด | ตาราง |
+|------|------|
+| Catalog | `games`, `sets`, `shops`, `products`, `product_serials` |
+| Order | `orders`, `order_items`, `shipments` |
+| Auction | `auctions`, `bids` |
+| Live | `live_sessions`, `live_queues` |
+| Collection | `collection_items`, `wishlists` |
+| PSA | `psa_submissions`, `psa_items` |
+| Buy-Back | `buyback_listings`, `buyback_requests` |
+| ระบบ | `membership_tiers`, `notifications`, `audit_logs` |
 
 ### ⚠️ Schema Drift (spec vs reality)
 
-| จุด | SQL จริง | spec | แนวทาง |
-|-----|----------|------|--------|
-| User table name | `member` (siamcard) | `users` | spec ใช้ `users`, code ใช้ `member` |
-| `bids.locked_txn_id` | ❌ ไม่มี | มี (Anti-Spam Shield) | ต้องเพิ่มตอน implement Wallet Lock |
-| `sets.code` | VARCHAR(20) | VARCHAR(8) | spec ปรับเป็น VARCHAR(20) |
+| จุด | จริง | spec | แนวทาง |
+|-----|------|------|--------|
+| User table name | `member` | `users` | spec ใช้ `users`, code ใช้ `member` |
 | `member.email` | nullable + UNIQUE | UNIQUE NOT NULL | spec ปรับเป็น nullable (รองรับ social login) |
 
 ---
@@ -232,7 +215,7 @@ orders ──< shipments
 | id PK · auction_id FK · user_id FK | | |
 | amount | DECIMAL(10,2) | |
 | is_auto_bid | BOOL | Auto Bid |
-| locked_txn_id | BIGINT FK→wallet_transactions | เครดิตที่ล็อกไว้ · ⚠️ **ยังไม่มีใน [caed_zone.sql](database/caed_zone.sql)** — ต้องเพิ่มตอน implement Wallet Lock |
+| locked_txn_id | BIGINT FK→wallet_transactions | เครดิตที่ล็อกไว้ · ⚠️ ยังไม่ implement — ต้องเพิ่มตอน implement Wallet Lock |
 | status | ENUM('active','outbid','won','refunded') | Auto Refund |
 
 ---

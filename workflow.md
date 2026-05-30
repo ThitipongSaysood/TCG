@@ -317,7 +317,7 @@ available  →  reserved  →  sold  →  queue_live  →  opened  →  delivere
               │
               ▼
 ┌──────────────────────────────────────────────────┐
-│ Database (MySQL/MariaDB · siamcard + caed_zone) │
+│ Database (MySQL/MariaDB · siamcard)              │
 │  └─ 6 domain migrations + users/cache/jobs       │
 └──────────────────────────────────────────────────┘
 
